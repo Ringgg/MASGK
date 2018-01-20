@@ -10,7 +10,7 @@ union float4
 {
 	struct { float x, y, z, w; };
 	struct { float r, g, b, a; };
-	//__m128 m;
+	struct { __m128 m; };
 
 	float4();
 	float4(float x, float y, float z, float w);
