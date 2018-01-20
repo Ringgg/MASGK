@@ -37,25 +37,29 @@ int main()
 
 	vp.SetPerspective(60, 1, 0.2, 100);
 	vp.SetLookAt(float3(4, -2, 4), float3(0, 0, 0), float3(0, 1, 0));
-	vp.SetIdentity();
 
-	vp.MultByScale(float3(2.5,1.5,2.5));
-	vp.MultByTrans(float3(0, -1, 0));
+	clock_t time = 0;
+	
+	for (int q = 0; q < 10; ++q)
+	{
+		vp.SetIdentity();
+		vp.MultByScale(float3(2.5, 1.5, 2.5));
+		vp.MultByTrans(float3(0, -1, 0));
+		clock_t begin = std::clock();
+
+		for (int i = 0; i < 5; ++i)
+		{
+			vp.MultByScale(float3(0.85, 0.85, 0.85));
+			vp.MultByTrans(float3(0, 0.4, 0));
+			Cylinder(20).Draw(r, vp);
+		}
+
+		clock_t end = std::clock();
+		time += end - begin;
+	}
 	
 
-	clock_t begin = std::clock();
-
-	for (int i = 0; i < 5; ++i)
-	{
-		vp.MultByScale(float3(0.85, 0.85, 0.85));
-		vp.MultByTrans(float3(0, 0.4, 0));
-		Cylinder(20).Draw(r, vp);
-	}
-
-	clock_t end = std::clock();
-	clock_t time = end - begin;
-
-	std::cout << "time: " << time/1000.0f << "s";
+	std::cout << "time: " << time/10000.0f << "s";
 
 	b.writeTGA("blabla.tga");
 
