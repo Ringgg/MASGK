@@ -16,7 +16,7 @@ int main()
 	Buffer b(512, 512);
 	Rasterizer r(b);
 
-	Light L(float4(0, 1, -4, 0), float4(1, 0, -1, 0));
+	Light L(float4(4, 1, -4, 0), float4(1, 0, -1, 0));
 	L.attenuation = 0.1f;
 	L.ambient = { 0.05f, 0.05f, 0.05f };
 	L.diffuse = { 1.0f, 1.0f, 1.0f };
@@ -39,27 +39,33 @@ int main()
 	vp.SetLookAt(float3(4, -2, 4), float3(0, 0, 0), float3(0, 1, 0));
 
 	clock_t time = 0;
-	
-	for (int q = 0; q < 10; ++q)
+	clock_t begin, end;
+
+	for (int q = 0; q < 11; ++q)
 	{
+		if (q > 0)
+			begin = std::clock();
+
 		vp.SetIdentity();
 		vp.MultByScale(float3(2.5, 1.5, 2.5));
 		vp.MultByTrans(float3(0, -1, 0));
-		clock_t begin = std::clock();
 
-		for (int i = 0; i < 5; ++i)
+		for (int i = 0; i < 10; ++i)
 		{
 			vp.MultByScale(float3(0.85, 0.85, 0.85));
 			vp.MultByTrans(float3(0, 0.4, 0));
-			Cylinder(20).Draw(r, vp);
+			Cylinder(30).Draw(r, vp);
 		}
 
-		clock_t end = std::clock();
-		time += end - begin;
+		if (q > 0)
+		{
+			end = std::clock();
+			time += end - begin;
+		}
 	}
 	
-
-	std::cout << "time: " << time/10000.0f << "s";
+	float percent = (r.time_ps / 10000.0) / 0.1;
+	std::cout << "time: " << time / 10000.0f << "\n";// << "s, of all: " << percent << "\n";
 
 	b.writeTGA("blabla.tga");
 

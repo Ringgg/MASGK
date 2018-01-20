@@ -1,5 +1,7 @@
 #pragma once
 
+#include <smmintrin.h>
+
 #include "float3.h";
 #include "float4.h";
 #include "float4x4.h";
@@ -7,7 +9,14 @@
 
 struct Linear
 {
-	static float3 Cross(const float3& a, const float3& b)
+	static inline void ADD(const float4 &a, const float4 &b, float4 &c) { c.m = _mm_add_ps(a.m, b.m); }
+	static inline void ADD(const float3 &a, const float3 &b, float3 &c) { c.m = _mm_add_ps(a.m, b.m); }
+	static inline void SUB(const float4 &a, const float4 &b, float4 &c) { c.m = _mm_sub_ps(a.m, b.m); }
+	static inline void SUB(const float3 &a, const float3 &b, float3 &c) { c.m = _mm_sub_ps(a.m, b.m); }
+	static inline void MUL(const float4 &a, const float4 &b, float4 &c) { c.m = _mm_mul_ps(a.m, b.m); }
+	static inline void MUL(const float3 &a, const float3 &b, float3 &c) { c.m = _mm_mul_ps(a.m, b.m); }
+
+	static inline float3 Cross(const float3& a, const float3& b)
 	{
 		return float3(
 			a.y * b.z - a.z * b.y,
@@ -15,14 +24,28 @@ struct Linear
 			a.x * b.y - a.y * b.x);
 	}
 
-	static float Dot(const float3& a, const float3& b)
+	static inline float Dot(const float3& a, const float3& b)
 	{
-		return a.x * b.x + a.y * b.y + a.z * b.z;
+		static __m128 r1, r2, r3;
+		static float result;
+		r1 = _mm_mul_ps(a.m, b.m);
+		r2 = _mm_hadd_ps(r1, r1);
+		r3 = _mm_hadd_ps(r2, r2);
+		_mm_store_ss(&result, r3);
+
+		return result;
 	}
 
-	static float Dot(const float4& a, const float4& b)
+	static inline float Dot(const float4& a, const float4& b)
 	{
-		return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+		static __m128 r1, r2, r3;
+		static float result;
+		r1 = _mm_mul_ps(a.m, b.m);
+		r2 = _mm_hadd_ps(r1, r1);
+		r3 = _mm_hadd_ps(r2, r2);
+		_mm_store_ss(&result, r3);
+
+		return result;
 	}
 
 	static float4x4 Mult(const float4x4& a, const float4x4& b)
@@ -163,5 +186,5 @@ struct Linear
 	static float3 Reflected(const float3& a, const float3& offB)
 	{
 		return a - Projected(a, offB) * 2;
-	}
+	}	
 };

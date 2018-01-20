@@ -17,6 +17,12 @@ void Rasterizer::Triangle(const Vertex& a, const Vertex& b, const Vertex& c)
 	// a.p <- screenspace coords
 	// a.p2 <- base point * MV matrix
 
+	n = Linear::Cross(
+		float3(c.p.x - a.p.x, c.p.y - a.p.y, 0),
+		float3(c.p.x - b.p.x, c.p.y - b.p.y, 0));
+	if (n.z >= 0)
+		return;
+
 	dx12 = a.p.x - b.p.x;    dx23 = b.p.x - c.p.x;    dx31 = c.p.x - a.p.x;
 	dy12 = a.p.y - b.p.y;    dy23 = b.p.y - c.p.y;    dy31 = c.p.y - a.p.y;
 	dx13 = a.p.x - c.p.x;    dx32 = c.p.x - b.p.x;
@@ -24,24 +30,69 @@ void Rasterizer::Triangle(const Vertex& a, const Vertex& b, const Vertex& c)
 	lambda1den = 1 / (dy23*dx13 + dx32*(a.p.y - c.p.y));
 	lambda2den = 1 / (dy31*dx23 + dx13*(dy23));
 
-	topLeft1 = dy12 < 0 || dy12 == 0 && dx12 < 0;
-	topLeft2 = dy23 < 0 || dy23 == 0 && dx23 < 0;
-	topLeft3 = dy31 < 0 || dy31 == 0 && dx31 < 0;
+	topLeft1 = dy12 < 0 || dy12 == 0 && dx12 > 0;
+	topLeft2 = dy23 < 0 || dy23 == 0 && dx23 > 0;
+	topLeft3 = dy31 < 0 || dy31 == 0 && dx31 > 0;
 
-	minX = fmax( fmin(a.p.x, fmin(b.p.x, c.p.x) ), -1.0F);
-	maxX = fmin( fmax(a.p.x, fmax(b.p.x, c.p.x) ),  1.0F);
-	minY = fmax( fmin(a.p.y, fmin(b.p.y, c.p.y) ), -1.0F);
-	maxY = fmin( fmax(a.p.y, fmax(b.p.y, c.p.y) ),  1.0F);
-	stepX = 1.0 / buffer.w;
-	stepY = 1.0 / buffer.h;
+	maxWidth = buffer.w - 1.0F;
+	maxHeight = buffer.h - 1.0F;
 
-	for (y = minY; y < maxY; y += stepY)
+	x1 = (a.p.x + 1.0F) * maxWidth * 0.5F;
+	x2 = (b.p.x + 1.0F) * maxWidth * 0.5F;
+	x3 = (c.p.x + 1.0F) * maxWidth * 0.5F;
+
+	y1 = (a.p.y + 1.0F) * maxHeight * 0.5F;
+	y2 = (b.p.y + 1.0F) * maxHeight * 0.5F;
+	y3 = (c.p.y + 1.0F) * maxHeight * 0.5F;
+
+	minX = static_cast<int>(roundf(fmaxf(min({ x1, x2, x3 }), 0.0F)));
+	maxX = static_cast<int>(roundf(fminf(max({ x1, x2, x3 }), maxWidth)));
+	minY = static_cast<int>(roundf(fmaxf(min({ y1, y2, y3 }), 0.0F)));
+	maxY = static_cast<int>(roundf(fminf(max({ y1, y2, y3 }), maxHeight)));
+
+	yy, xx;
+
+	//__m128 Xdiff, Ydiff, Xvals, Yvals;
+	//__m128 DXs;
+
+	//DXs.m128_f32[0] = dx12;
+	//DXs.m128_f32[1] = dx23;
+	//DXs.m128_f32[2] = dx31;
+
+
+	double val;
+	for (yy = minY; yy <= maxY; ++yy)
 	{
-		for (x = minX; x < maxX; x += stepX)
+		for (xx = minX; xx <= maxX; ++xx)
 		{
-			if (topLeft1 ? (dx12 * (y - a.p.y) - dy12 * (x - a.p.x) < 0) : (dx12* (y - a.p.y) - dy12 * (x - a.p.x) < 0)) continue;
-			if (topLeft2 ? (dx23 * (y - b.p.y) - dy23 * (x - b.p.x) < 0) : (dx23* (y - b.p.y) - dy23 * (x - b.p.x) < 0)) continue;
-			if (topLeft3 ? (dx31 * (y - c.p.y) - dy31 * (x - c.p.x) < 0) : (dx31* (y - c.p.y) - dy31 * (x - c.p.x) < 0)) continue;
+			x = (xx / maxWidth  / 0.5) - 1.0;
+			y = (yy / maxHeight / 0.5) - 1.0;
+
+			//clock_t begin = std::clock();
+			
+			//Xdiff.m128_f32[0] = xx - x1;
+			//Xdiff.m128_f32[1] = xx - x2;
+			//Xdiff.m128_f32[2] = xx - x3;
+			//Ydiff.m128_f32[0] = yy - y1;
+			//Ydiff.m128_f32[1] = yy - y2;
+			//Ydiff.m128_f32[2] = yy - y3;
+			//			
+			//Xvals = _mm_mul_ps(DXs, Xdiff);
+			//Yvals = _mm_mul_ps(DXs, Ydiff);
+			
+			//val = Yvals.m128_f32[0] - Xvals.m128_f32[0];
+			val = dx12 * (yy - y1) - dy12 * (xx - x1);
+			if (topLeft1 ? (val < 0) : (val <= 0)) continue;
+
+			//val = Yvals.m128_f32[1] - Xvals.m128_f32[1];
+			val = dx23 * (yy - y2) - dy23 * (xx - x2);
+			if (topLeft2 ? (val < 0) : (val <= 0)) continue;
+
+			//val = Yvals.m128_f32[2] - Xvals.m128_f32[2];
+			val = dx31 * (yy - y3) - dy31 * (xx - x3);
+			if (topLeft3 ? (val < 0) : (val <= 0)) continue;
+
+			//time_ps += std::clock() - begin;
 
 			lambda[0] = ((dy23 * (x - c.p.x)) + (dx32 * (y - c.p.y))) * lambda1den;
 			lambda[1] = ((dy31 * (x - c.p.x)) + (dx13 * (y - c.p.y))) * lambda2den;
@@ -73,29 +124,40 @@ void Rasterizer::Triangle(const Vertex& a, const Vertex& b, const Vertex& c)
 
 void Rasterizer::GetColor(const Vertex& a, const Vertex& b, const Vertex& c)
 {
+	static float4 x, y;
+
+	colorMult = a.c * lambda[0] + b.c * lambda[1] + c.c * lambda[2];
 	finalColor = { 0,0,0 };
+
 	for (int i = 0; i < lights.size(); i++)
-	{		
-		float4 lightVec = lights[i]->GetDir(pos);
-		float attenuation = lights[i]->GetIntensity(lightVec);
+	{
+		lightVec = lights[i]->GetDir(pos);
+		attenuation = lights[i]->GetIntensity(lightVec);
+
+		x = pos;
+		x.Normalize();
 		lightVec.Normalize();
+		halfVec = (x + lightVec);
+		halfVec.Normalize();
+		halfVec *= -1;
+		
+		LdotN = fmax(0.0f, Linear::Dot(lightVec, norm));
+		NdotH = fmax(0.0f, -Linear::Dot(halfVec, norm));
+		
+		x = lights[i]->diffuse;
+		x *= attenuation * LdotN;
+		Linear::ADD(lights[i]->ambient, x, y);
+		Linear::MUL(y, colorMult, x); // x = ambient + diffuse
+		y = lights[i]->specular;
+		y *= std::pow(NdotH, 5); // y = specular
+		Linear::ADD(x, y, tmpCol);
 
-		float4 viewVec = -(pos.Normalized());
-		float4 halfVec = (viewVec + -lightVec).Normalized();
+		//tmpCol = lights[i]->ambient;							// ambient
+		//tmpCol +=lights[i]->diffuse * (attenuation * LdotN);	// diffuse
+		//tmpCol *= colorMult;
+		//tmpCol += lights[i]->specular * std::pow(NdotH, 5);		// specular
 
-		float LdotN = fmax(0.0f, Linear::Dot(lightVec, norm));
-		float NdotH = fmax(0.0f, -Linear::Dot(halfVec, norm));
+		finalColor += tmpCol;
 
-		if (LdotN > 0)
-			LdotN = LdotN;
-
-		ambient = lights[i]->ambient;
-		diffuse = lights[i]->diffuse * attenuation * LdotN;
-		specular = (lights[i]->specular * std::pow(NdotH, 5));
-
-		ambient *= a.c * lambda[0] + b.c * lambda[1] + c.c * lambda[2];
-		diffuse *= a.c * lambda[0] + b.c * lambda[1] + c.c * lambda[2];
-
-		finalColor = finalColor + ambient + diffuse + specular;
 	}
 }

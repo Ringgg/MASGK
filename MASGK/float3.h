@@ -2,30 +2,33 @@
 
 #include <math.h>
 
-struct float3;
+union float3;
 #include "float4.h"
 
-struct float3
+__declspec(align(32))
+union float3
 {
-    union { float x, r; };
-    union { float y, g; };
-    union { float z, b; };
+	struct { float x, y, z, align; };
+	struct { float r, g, b, align; };
+	struct { __m128 m; };
 
 	float3();
 	float3(float x, float y, float z);
 	float3(const float3& orig);
 	float3(const float4& orig);
+	float3(const __m128& m) : m(m) { }
 
-    float& operator[](const int i)    const { return *((float*)this + i);                    }
-    float3 operator+(const float3& r) const { return float3(x + r.x, y + r.y, z + r.z);      }
-    float3 operator-(const float3& r) const { return float3(x - r.x, y - r.y, z - r.z);      }
-    float3 operator-()                const { return float3(-x, -y, -z);                     }
-    float3 operator*(float r)         const { return float3(x * r, y * r, z * r);            }
-	float3 operator/(const float r)   const { return float3(x / r, y / r, z / r);			 }
-    float3& operator+=(const float3& r)        { x += r.x; y += r.y; z += r.z; return *this; }
-    float3& operator-=(const float3& r)        { x -= r.x; y -= r.y; z -= r.z; return *this; }
-    float3& operator*=(const float3& r)        { x *= r.x; y *= r.y; z *= r.z; return *this; }
-    float3& operator*=(const float r)          { x *= r;   y *= r;   z *= r;   return *this; }
+    float& operator[](const int i)    const { return *((float*)this + i);                 }
+    float3 operator+(const float3& r) const { return float3(_mm_add_ps(m, r.m));          }
+    float3 operator-(const float3& r) const { return float3(_mm_sub_ps(m, r.m));          }
+    float3 operator-()                const { return float3(-x, -y, -z);                  }
+    float3 operator*(float r)         const { return float3(x * r, y * r, z * r);         }
+	float3 operator/(const float r)   const { return float3(x / r, y / r, z / r);		  }
+	float3 operator*(const float3& r) const { return float3(_mm_mul_ps(m, r.m));		  }
+    float3& operator+=(const float3& r)     { m = _mm_add_ps(m, r.m); return *this;       }
+    float3& operator-=(const float3& r)     { m = _mm_sub_ps(m, r.m); return *this;       }
+    float3& operator*=(const float3& r)     { m = _mm_mul_ps(m, r.m); return *this;       }
+    float3& operator*=(const float r)       { x *= r;   y *= r;   z *= r;   return *this; }
 
     void Normalize()
     {
