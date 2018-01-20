@@ -1,4 +1,5 @@
 #include <iostream>
+#include <ctime>
 
 #include "Lib3d.h"
 #include "Mesh.h"
@@ -41,22 +42,25 @@ int main()
 	vp.MultByScale(float3(2.5,1.5,2.5));
 	vp.MultByTrans(float3(0, -1, 0));
 	
-	for (int i = 0; i < 10; ++i)
+
+	clock_t begin = std::clock();
+
+	for (int i = 0; i < 5; ++i)
 	{
 		vp.MultByScale(float3(0.85, 0.85, 0.85));
 		vp.MultByTrans(float3(0, 0.4, 0));
 		Cylinder(20).Draw(r, vp);
 	}
-	//vp.MultByTrans(float3(0, 0.15, 0));
-	//Cone(20).Draw(r, vp);
-	//
-	//vp.SetIdentity();
-	//vp.MultByScale(float3(5, 0.5f, 5));
-	//vp.MultByTrans(float3(0, -1, 0));
-	//vp.MultByRot(30, float3(0, 1, 0));
-	//Cube().Draw(r, vp);
+
+	clock_t end = std::clock();
+	clock_t time = end - begin;
+
+	std::cout << "time: " << time/1000.0f << "s";
 
 	b.writeTGA("blabla.tga");
+
+	string s;
+	cin >> s;
 
     return 0;
 }

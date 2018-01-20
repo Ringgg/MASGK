@@ -11,6 +11,7 @@
 *.gch
 *.pch
 *.ipch
+*.vs*
 
 # Compiled Dynamic libraries
 *.so
