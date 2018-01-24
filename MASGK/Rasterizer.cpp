@@ -30,69 +30,36 @@ void Rasterizer::Triangle(const Vertex& a, const Vertex& b, const Vertex& c)
 	lambda1den = 1 / (dy23*dx13 + dx32*(a.p.y - c.p.y));
 	lambda2den = 1 / (dy31*dx23 + dx13*(dy23));
 
-	topLeft1 = dy12 < 0 || dy12 == 0 && dx12 > 0;
-	topLeft2 = dy23 < 0 || dy23 == 0 && dx23 > 0;
-	topLeft3 = dy31 < 0 || dy31 == 0 && dx31 > 0;
+	topLeft1 = dy12 < 0 || dx12 < 0;
+	topLeft2 = dy23 < 0 || dx23 < 0;
+	topLeft3 = dy31 < 0 || dx31 < 0;
 
-	maxWidth = buffer.w - 1.0F;
-	maxHeight = buffer.h - 1.0F;
+	maxWidth = buffer.w - 1.0;
+	maxHeight = buffer.h - 1.0;
 
-	x1 = (a.p.x + 1.0F) * maxWidth * 0.5F;
-	x2 = (b.p.x + 1.0F) * maxWidth * 0.5F;
-	x3 = (c.p.x + 1.0F) * maxWidth * 0.5F;
+	x1 = (a.p.x + 1.0) * 0.5 * maxWidth;
+	x2 = (b.p.x + 1.0) * 0.5 * maxWidth;
+	x3 = (c.p.x + 1.0) * 0.5 * maxWidth;
 
-	y1 = (a.p.y + 1.0F) * maxHeight * 0.5F;
-	y2 = (b.p.y + 1.0F) * maxHeight * 0.5F;
-	y3 = (c.p.y + 1.0F) * maxHeight * 0.5F;
+	y1 = (a.p.y + 1.0) * 0.5 * maxHeight;
+	y2 = (b.p.y + 1.0) * 0.5 * maxHeight;
+	y3 = (c.p.y + 1.0) * 0.5 * maxHeight;
 
-	minX = static_cast<int>(roundf(fmaxf(min({ x1, x2, x3 }), 0.0F)));
-	maxX = static_cast<int>(roundf(fminf(max({ x1, x2, x3 }), maxWidth)));
-	minY = static_cast<int>(roundf(fmaxf(min({ y1, y2, y3 }), 0.0F)));
-	maxY = static_cast<int>(roundf(fminf(max({ y1, y2, y3 }), maxHeight)));
+	minX = max(min({ x1, x2, x3 }), 0.0f);
+	maxX = min(max({ x1, x2, x3 }), maxWidth);
+	minY = max(min({ y1, y2, y3 }), 0.0f);
+	maxY = min(max({ y1, y2, y3 }), maxHeight);
 
-	yy, xx;
-
-	//__m128 Xdiff, Ydiff, Xvals, Yvals;
-	//__m128 DXs;
-
-	//DXs.m128_f32[0] = dx12;
-	//DXs.m128_f32[1] = dx23;
-	//DXs.m128_f32[2] = dx31;
-
-
-	double val;
 	for (yy = minY; yy <= maxY; ++yy)
 	{
 		for (xx = minX; xx <= maxX; ++xx)
 		{
-			x = (xx / maxWidth  / 0.5) - 1.0;
-			y = (yy / maxHeight / 0.5) - 1.0;
+			if (topLeft1 ? (dx12 * (yy - y1) - dy12 * (xx - x1) < 0) : (dx12 * (yy - y1) - dy12 * (xx - x1) <= 0)) continue;
+			if (topLeft2 ? (dx23 * (yy - y2) - dy23 * (xx - x2) < 0) : (dx23 * (yy - y2) - dy23 * (xx - x2) <= 0)) continue;
+			if (topLeft3 ? (dx31 * (yy - y3) - dy31 * (xx - x3) < 0) : (dx31 * (yy - y3) - dy31 * (xx - x3) <= 0)) continue;
 
-			//clock_t begin = std::clock();
-			
-			//Xdiff.m128_f32[0] = xx - x1;
-			//Xdiff.m128_f32[1] = xx - x2;
-			//Xdiff.m128_f32[2] = xx - x3;
-			//Ydiff.m128_f32[0] = yy - y1;
-			//Ydiff.m128_f32[1] = yy - y2;
-			//Ydiff.m128_f32[2] = yy - y3;
-			//			
-			//Xvals = _mm_mul_ps(DXs, Xdiff);
-			//Yvals = _mm_mul_ps(DXs, Ydiff);
-			
-			//val = Yvals.m128_f32[0] - Xvals.m128_f32[0];
-			val = dx12 * (yy - y1) - dy12 * (xx - x1);
-			if (topLeft1 ? (val < 0) : (val <= 0)) continue;
-
-			//val = Yvals.m128_f32[1] - Xvals.m128_f32[1];
-			val = dx23 * (yy - y2) - dy23 * (xx - x2);
-			if (topLeft2 ? (val < 0) : (val <= 0)) continue;
-
-			//val = Yvals.m128_f32[2] - Xvals.m128_f32[2];
-			val = dx31 * (yy - y3) - dy31 * (xx - x3);
-			if (topLeft3 ? (val < 0) : (val <= 0)) continue;
-
-			//time_ps += std::clock() - begin;
+			x = ((float)xx / maxWidth / 0.5) - 1.0;
+			y = ((float)yy / maxHeight / 0.5) - 1.0;
 
 			lambda[0] = ((dy23 * (x - c.p.x)) + (dx32 * (y - c.p.y))) * lambda1den;
 			lambda[1] = ((dy31 * (x - c.p.x)) + (dx13 * (y - c.p.y))) * lambda2den;
@@ -100,9 +67,7 @@ void Rasterizer::Triangle(const Vertex& a, const Vertex& b, const Vertex& c)
 
 			depth = (lambda[0] * a.p.z) + (lambda[1] * b.p.z) + (lambda[2] * c.p.z);
 
-			idX = (x + 1) * buffer.w * 0.5f;
-			idY = (y + 1) * buffer.h * 0.5f;
-			if ((depth < 0) || (depth < buffer.depth[(buffer.w * buffer.h - 1) - (idX + idY * buffer.w)]))
+			if ((depth < 0) || (depth < buffer.depth[(buffer.w * buffer.h - 1) - (xx + yy * buffer.w)]))
 				continue;
 
 			f = lambda;
@@ -116,8 +81,8 @@ void Rasterizer::Triangle(const Vertex& a, const Vertex& b, const Vertex& c)
 
 			GetColor(a, b, c);
 
-			buffer.color[(buffer.w * buffer.h - 1) - (idX + idY * buffer.w)] = Linear::Saturated(finalColor);
-			buffer.depth[(buffer.w * buffer.h - 1) - (idX + idY * buffer.w)] = depth;
+			buffer.color[(buffer.w * buffer.h - 1) - (xx + yy * buffer.w)] = Linear::Saturated(finalColor);
+			buffer.depth[(buffer.w * buffer.h - 1) - (xx + yy * buffer.w)] = depth;
 		}
 	}
 }

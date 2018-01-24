@@ -34,16 +34,16 @@ private:
 	//helpers
 	float3 lambda, uv, f, n;
 	float4 pos, norm;
-	double x, y, minX, maxX, minY, maxY, stepX, stepY;
-	double dx12, dx23, dx31, dx13, dx32, dy12, dy23, dy31;
-	float lambda1den, lambda2den, depth, maxWidth, maxHeight;
+	float x, y;
+	float dx12, dx23, dx31, dx13, dx32, dy12, dy23, dy31;
+	float lambda1den, lambda2den, depth;
 	bool topLeft1, topLeft2, topLeft3;
-	int idX, idY, x1, x2, x3, y1, y2, y3, xx, yy;
+	float x1, x2, x3, y1, y2, y3, maxWidth, maxHeight;
+	int xx, yy;
+	int minX, maxX, minY, maxY;
 
 	// light
 	float4 lightVec, viewVec, halfVec;
 	float3 finalColor, colorMult, tmpCol;
 	float attenuation, LdotN, NdotH;
-
-	const float eps = -std::numeric_limits<float>::epsilon();
 };
